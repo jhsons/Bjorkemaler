@@ -1,0 +1,956 @@
+<!DOCTYPE html>
+<html lang="nb">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Bjørkemålerspillet</title>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --moss:        #6f7d4c;
+    --ochre:       #b9781f;
+    --ochre-dark:  #8f5c14;
+    --bark-dark:   #241a12;
+    --bark-light:  #ded8cb;
+    --cream:       #f4efe2;
+    --paper:       #fffdf8;
+    --ink:         #241c14;
+    --ink-soft:    #5a4f40;
+    --line:        #ded2bb;
+    --danger:      #a8402c;
+    --good:        #3e6b45;
+    --allele:      #4a6c8f;
+    color-scheme: light;
+  }
+  :root:not([data-theme="light"]) {
+    @media (prefers-color-scheme: dark) {
+      --cream:  #1d1811; --paper: #262019; --ink: #efe7d8;
+      --ink-soft:#bcae95; --line: #40372a;
+    }
+  }
+  :root[data-theme="dark"] {
+    --cream:  #1d1811; --paper: #262019; --ink: #efe7d8;
+    --ink-soft:#bcae95; --line: #40372a;
+  }
+  * { box-sizing: border-box; }
+  html, body { height: 100%; margin: 0; }
+  html { scroll-padding-top: env(safe-area-inset-top, 0px); }
+  body {
+    background: var(--cream); color: var(--ink);
+    font-family: 'Inter', system-ui, -apple-system, sans-serif;
+    padding-top: env(safe-area-inset-top, 0px);
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+    -webkit-tap-highlight-color: transparent;
+  }
+  h1, h2, .display { font-family: 'Fraunces', Georgia, serif; font-weight: 600; letter-spacing: -0.01em; margin: 0; }
+  .shell { max-width: 780px; margin: 0 auto; padding: 26px 20px 56px; }
+  header.top {
+    display: flex; align-items: baseline; gap: 10px;
+    border-bottom: 1px solid var(--line); padding-bottom: 14px; margin-bottom: 20px;
+  }
+  header.top h1 { font-size: clamp(21px, 4vw, 29px); }
+  header.top .latin { font-style: italic; color: var(--ink-soft); font-size: 14px; }
+  .panel { background: var(--paper); border: 1px solid var(--line); border-radius: 4px; padding: 22px; }
+  p { line-height: 1.55; margin: 0 0 12px; }
+  p:last-child { margin-bottom: 0; }
+  p.lede { font-size: 16px; color: var(--ink-soft); max-width: 62ch; }
+  .note {
+    border-left: 3px solid var(--moss); padding: 10px 14px;
+    background: color-mix(in srgb, var(--moss) 8%, transparent);
+    font-size: 14px; color: var(--ink-soft); margin: 16px 0;
+  }
+  details.about summary { cursor: pointer; font-size: 14px; color: var(--ochre-dark); font-weight: 600; }
+  details.about[open] summary { margin-bottom: 8px; }
+  details.about p, details.about li { font-size: 14px; color: var(--ink-soft); line-height:1.55; }
+  details.about ul { margin: 0 0 10px; padding-left: 20px; }
+
+  .field-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(230px, 1fr)); gap: 18px 24px; margin: 18px 0 20px; }
+  .field label.top { display: flex; justify-content: space-between; font-size: 14px; font-weight: 600; margin-bottom: 6px; }
+  .field label.top .val { font-weight: 400; color: var(--ochre-dark); font-variant-numeric: tabular-nums; }
+  .field input[type=range] { width: 100%; accent-color: var(--ochre); }
+  .field .sub { font-size: 12.5px; color: var(--ink-soft); margin-top: 4px; }
+  fieldset.env { border: none; padding: 0; margin: 0; }
+  fieldset.env legend { font-size: 14px; font-weight: 600; margin-bottom: 8px; padding: 0; }
+  .seg { display: inline-flex; border: 1px solid var(--line); border-radius: 6px; overflow: hidden; }
+  .seg label { margin: 0; padding: 9px 14px; font-size: 14px; font-weight: 500; cursor: pointer; background: var(--paper); color: var(--ink-soft); border-right: 1px solid var(--line); }
+  .seg label:last-child { border-right: none; }
+  .seg input { position: absolute; opacity: 0; pointer-events: none; }
+  .seg label:has(input:checked) { background: #7d6a4e; color: #fff; }
+  .seg label:has(input:checked)[data-e="sot"] { background: #211a13; color: #fff; }
+
+  button { font-family: inherit; font-size: 15px; font-weight: 600; border-radius: 6px; border: 1px solid transparent; padding: 12px 20px; cursor: pointer; transition: transform .08s ease; }
+  button:active { transform: translateY(1px); }
+  button.primary { background: var(--ochre); color: #fff5e6; }
+  button.primary:hover { background: var(--ochre-dark); }
+  button.ghost { background: transparent; border-color: var(--line); color: var(--ink); }
+  button.ghost:hover { border-color: var(--ochre-dark); color: var(--ochre-dark); }
+  .actions { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 6px; }
+
+  .hud { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px 18px; margin-bottom: 12px; font-size: 14px; }
+  .hud .gen { font-family: 'Fraunces', serif; font-size: 18px; font-weight: 600; }
+  .hud .stat { color: var(--ink-soft); }
+  .hud .stat b { color: var(--ink); font-variant-numeric: tabular-nums; }
+  .timerwrap { height: 8px; border-radius: 99px; background: var(--line); overflow: hidden; margin-bottom: 12px; }
+  .timerbar { height: 100%; background: var(--good); width: 100%; transition: width 1s linear, background .3s ease; }
+  .timerbar.low { background: var(--danger); }
+  .canvas-wrap { position: relative; border-radius: 6px; overflow: hidden; border: 1px solid var(--line); touch-action: none; cursor: crosshair; }
+  canvas { display: block; width: 100%; height: auto; }
+  .hint { text-align: center; font-size: 13px; color: var(--ink-soft); margin-top: 10px; }
+  .eatpop { position: absolute; pointer-events: none; font-family: 'Fraunces', serif; font-weight: 600; font-size: 14px; color: #fff; text-shadow: 0 1px 3px rgba(0,0,0,.8); animation: floatup .6s ease-out forwards; }
+  .misspop { position: absolute; pointer-events: none; width: 26px; height: 26px; margin: -13px 0 0 -13px; border: 2px solid rgba(255,255,255,.75); border-radius: 50%; animation: ping .45s ease-out forwards; }
+  @keyframes floatup { from { opacity: 1; transform: translate(-50%,-50%);} to { opacity: 0; transform: translate(-50%,-170%);} }
+  @keyframes ping { from { opacity:.9; transform: scale(.4);} to { opacity:0; transform: scale(1.5);} }
+
+  .resultgrid { display: grid; grid-template-columns: repeat(auto-fit,minmax(140px,1fr)); gap: 12px; margin: 16px 0; }
+  .resultcard { border: 1px solid var(--line); border-radius: 6px; padding: 13px 15px; }
+  .resultcard .n { font-family: 'Fraunces', serif; font-size: 28px; font-weight: 600; line-height: 1; }
+  .resultcard .lbl { font-size: 13px; color: var(--ink-soft); margin-top: 4px; }
+  .swatch { display:inline-block; width:11px; height:11px; border-radius:2px; margin-right:6px; vertical-align:1px; }
+  table.hist { width: 100%; border-collapse: collapse; font-size: 13px; }
+  table.hist th, table.hist td { text-align: left; padding: 7px 9px; border-bottom: 1px solid var(--line); }
+  table.hist th { color: var(--ink-soft); font-weight: 600; }
+  .tablewrap { overflow-x: auto; }
+  svg.chart { width: 100%; height: auto; display: block; }
+  .chart text { font-family: 'Inter', sans-serif; font-size: 10px; fill: var(--ink-soft); }
+  .chart .gridline { stroke: var(--line); stroke-width: 1; }
+  .legend { display:flex; gap:16px; font-size:13px; color:var(--ink-soft); margin-top:8px; flex-wrap:wrap; }
+  .legend span { display:flex; align-items:center; gap:6px; }
+  footer.credit { text-align: center; font-size: 12px; color: var(--ink-soft); margin-top: 26px; }
+  /* intro / theory */
+  .theory h2 { font-size: 19px; margin: 22px 0 8px; }
+  .theory h2:first-of-type { margin-top: 4px; }
+  .theory ol, .theory ul { margin: 0 0 12px; padding-left: 22px; }
+  .theory li { line-height: 1.55; margin-bottom: 4px; }
+  .morphs { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin: 10px 0 14px; }
+  .morph { border: 1px solid var(--line); border-radius: 6px; overflow: hidden; }
+  .morph svg { display: block; width: 100%; height: auto; }
+  .morph .cap { padding: 8px 12px; font-size: 13px; color: var(--ink-soft); }
+  .morph .cap b { color: var(--ink); }
+  .predict { border: 1px dashed var(--ochre); border-radius: 6px; padding: 12px 14px; margin: 16px 0; font-size: 14px; }
+  .predict b { color: var(--ochre-dark); }
+  .topnav { margin-left: auto; }
+  .topnav button { padding: 6px 12px; font-size: 13px; }
+  /* quiz */
+  .qprog { font-size: 13px; color: var(--ink-soft); margin-bottom: 6px; }
+  .qtext { font-family: 'Fraunces', serif; font-size: 19px; font-weight: 600; line-height: 1.35; margin: 0 0 14px; }
+  .opts { display: grid; gap: 8px; }
+  .opt { text-align: left; background: var(--paper); border: 1px solid var(--line); color: var(--ink); font-weight: 500; padding: 11px 14px; line-height: 1.4; }
+  .opt:hover:not(:disabled) { border-color: var(--ochre); }
+  .opt.correct { border-color: var(--good); background: color-mix(in srgb, var(--good) 12%, var(--paper)); }
+  .opt.wrong { border-color: var(--danger); background: color-mix(in srgb, var(--danger) 10%, var(--paper)); }
+  .opt:disabled { opacity: 1; cursor: default; }
+  .expl { margin-top: 14px; padding: 12px 14px; border-left: 3px solid var(--good); background: color-mix(in srgb, var(--good) 7%, transparent); font-size: 14px; line-height: 1.55; }
+  .expl.bad { border-left-color: var(--danger); background: color-mix(in srgb, var(--danger) 6%, transparent); }
+  .expl b { display: block; margin-bottom: 3px; }
+  .score { font-family: 'Fraunces', serif; font-size: 44px; font-weight: 600; line-height: 1; margin: 6px 0; }
+  textarea.essay { width: 100%; min-height: 150px; font-family: inherit; font-size: 15px; line-height: 1.5; padding: 12px; border: 1px solid var(--line); border-radius: 6px; background: var(--paper); color: var(--ink); resize: vertical; }
+  .model { margin-top: 14px; border: 1px solid var(--line); border-radius: 6px; padding: 14px 16px; font-size: 14.5px; line-height: 1.6; }
+  .checklist { margin: 10px 0 0; padding-left: 20px; font-size: 14px; line-height: 1.6; }
+  [hidden] { display: none !important; }
+  @media (prefers-reduced-motion: reduce) { .timerbar, .eatpop, .misspop { transition: none; animation: none; } }
+</style>
+</head>
+<body>
+<div class="shell">
+
+  <header class="top">
+    <h1>Bjørkemålerspillet</h1>
+    <span class="latin">Biston betularia</span>
+    <span class="topnav"><button class="ghost" id="navTheory" type="button">Teori</button></span>
+  </header>
+
+  <section class="panel theory" id="view-intro">
+    <p class="lede">Bjørkemåleren er et av de best dokumenterte eksemplene på naturlig seleksjon vi har. Les gjennom teorien, spill spillet, og ta quizen til slutt.</p>
+
+    <h2>Naturlig seleksjon på fire linjer</h2>
+    <ol>
+      <li><b>Variasjon:</b> individene i en populasjon er ulike.</li>
+      <li><b>Arvelighet:</b> noe av variasjonen går i arv fra foreldre til avkom.</li>
+      <li><b>Overproduksjon:</b> det fødes flere avkom enn det som overlever og formerer seg.</li>
+      <li><b>Ulik overlevelse:</b> individer med visse arvelige trekk overlever og formerer seg bedre enn andre.</li>
+    </ol>
+    <p>Når alle fire er oppfylt, blir de gunstige trekkene vanligere fra generasjon til generasjon. Det er populasjonen som endres, ikke det enkelte individet.</p>
+
+    <h2>Bjørkemåleren</h2>
+    <p><i>Biston betularia</i> er en nattsvermer som hviler på trestammer om dagen. Den viktigste fienden er fugler som jakter med synet. Arten finnes i to hovedformer:</p>
+    <div class="morphs">
+      <div class="morph">
+        <svg viewBox="0 0 200 110" aria-hidden="true"><rect width="200" height="110" fill="#e9e5da"/><g fill="#2e2921" opacity=".75"><rect x="10" y="20" width="40" height="3" rx="1.5"/><rect x="120" y="14" width="55" height="4" rx="2"/><rect x="30" y="80" width="60" height="4" rx="2"/><rect x="140" y="88" width="35" height="3" rx="1.5"/></g><path d="M100 30 Q128 46 122 78 Q110 84 100 80 Q90 84 78 78 Q72 46 100 30Z" fill="#ded8cb" stroke="#8a8170" stroke-width=".8"/><g fill="#3a3229" opacity=".55"><circle cx="92" cy="50" r="1.2"/><circle cx="108" cy="56" r="1.3"/><circle cx="96" cy="66" r="1"/><circle cx="112" cy="68" r="1.1"/><circle cx="88" cy="70" r="1.2"/><circle cx="104" cy="44" r="1"/></g></svg>
+        <div class="cap"><b>typica</b> &mdash; lys og «pepret». Godt kamuflert på lys bjørk.</div>
+      </div>
+      <div class="morph">
+        <svg viewBox="0 0 200 110" aria-hidden="true"><rect width="200" height="110" fill="#3a332a"/><g fill="#12100c" opacity=".8"><rect x="10" y="20" width="40" height="3" rx="1.5"/><rect x="120" y="14" width="55" height="4" rx="2"/><rect x="30" y="80" width="60" height="4" rx="2"/><rect x="140" y="88" width="35" height="3" rx="1.5"/></g><path d="M100 30 Q128 46 122 78 Q110 84 100 80 Q90 84 78 78 Q72 46 100 30Z" fill="#221a13" stroke="#51473b" stroke-width=".8"/></svg>
+        <div class="cap"><b>carbonaria</b> &mdash; nesten svart. Godt kamuflert på sotete stammer.</div>
+      </div>
+    </div>
+    <p>Før industrialiseringen var nesten alle bjørkemålere i England lyse. Den første mørke ble registrert ved Manchester i 1848. Mot slutten av 1800-tallet var langt over 90 % av målerne rundt Manchester mørke, fordi sot fra kullfyring hadde gjort trestammene mørke og drept lavene på barken. Etter at lovene om renere luft kom på 1950-tallet, snudde utviklingen, og i dag er den lyse formen igjen den vanligste.</p>
+    <p>På 1950-tallet slapp Bernard Kettlewell merkede målere ut i både forurenset og ren skog og fanget dem inn igjen. Den formen som syntes best mot barken, ble oftest borte. Forsøkene hans ble kritisert for metoden, men Michael Majerus gjentok dem i stor skala i 2001&ndash;2007 og bekreftet at fugler spiser flest av den synlige formen.</p>
+
+    <h2>Genetikken</h2>
+    <ul>
+      <li>Fargen styres av ett gen med to alleler: <b>C</b> (mørk) og <b>c</b> (lys).</li>
+      <li><b>C er dominant.</b> Det betyr at både CC og Cc blir mørke. Bare cc blir lys.</li>
+      <li>Det mørke allelet oppsto ved en tilfeldig mutasjon: et «hoppende gen» (transposon) som har satt seg inn i genet <i>cortex</i>. Mutasjonen anslås å ha oppstått rundt 1819, altså <em>før</em> soten gjorde den nyttig.</li>
+      <li>Det finnes også en mellomform (<i>insularia</i>), men den ser vi bort fra her.</li>
+    </ul>
+
+    <h2>Slik spiller du</h2>
+    <ul>
+      <li>Du er fuglen. Trykk på målerne du oppdager før tiden går ut.</li>
+      <li>De som overlever, parer seg tilfeldig og får avkom til neste generasjon.</li>
+      <li>Mellom generasjonene kan du bytte mellom ren og sotet bjørk.</li>
+      <li>Følg med på de to linjene i grafen: andelen mørke <em>individer</em> og frekvensen av det mørke <em>allelet</em>.</li>
+    </ul>
+
+    <div class="predict"><b>Før du spiller:</b> Skriv ned hva du tror skjer med andelen mørke målere over seks generasjoner hvis du starter på sotet bjørk. Hva tror du skjer hvis du bytter tilbake til ren bjørk?</div>
+
+    <div class="actions"><button class="primary" id="toSetupBtn" type="button">Gå til spillet</button></div>
+  </section>
+
+  <section class="panel" id="view-setup" hidden>
+    <p class="lede">Du er fuglen. Finn så mange målere du klarer før tiden går ut. De som overlever, parer seg &mdash; og fargen som er vanskeligst å se, blir vanligere for hver generasjon.</p>
+
+    <div class="note">
+      De to fargene er <em>ikke</em> to arter, men to varianter (morfer) av samme art. Den mørke varianten heter <em>carbonaria</em>, den lyse <em>typica</em>. Mørk farge skyldes ett dominant allel, så en måler med bare ett mørkt allel blir mørk.
+    </div>
+
+    <form id="settingsForm">
+      <div class="field-grid">
+        <div class="field">
+          <label class="top" for="popSize">Populasjonsstørrelse <span class="val" id="popSizeVal">40</span></label>
+          <input type="range" id="popSize" min="20" max="60" step="2" value="40">
+        </div>
+        <div class="field">
+          <label class="top" for="pDark">Frekvens av mørkt allel <span class="val" id="pDarkVal">0,30</span></label>
+          <input type="range" id="pDark" min="0" max="100" step="5" value="30">
+          <div class="sub" id="pDarkSub">gir ca. 51 % mørke individer</div>
+        </div>
+        <div class="field">
+          <label class="top" for="camo">Kamuflasje <span class="val" id="camoVal">Høy</span></label>
+          <input type="range" id="camo" min="0" max="100" step="10" value="75">
+          <div class="sub">hvor godt fargen matcher underlaget</div>
+        </div>
+        <div class="field">
+          <label class="top" for="mothSize">Størrelse på målerne <span class="val" id="mothSizeVal">Små</span></label>
+          <input type="range" id="mothSize" min="50" max="120" step="10" value="70">
+          <div class="sub">mindre målere er vanskeligere å finne</div>
+        </div>
+        <div class="field">
+          <label class="top" for="barkVar">Variasjon i barken <span class="val" id="barkVarVal">Middels</span></label>
+          <input type="range" id="barkVar" min="0" max="100" step="10" value="50">
+          <div class="sub">mørke flekker på ren bjørk, lyse på sotet</div>
+        </div>
+        <div class="field">
+          <label class="top" for="roundTime">Tid per generasjon <span class="val" id="roundTimeVal">15 s</span></label>
+          <input type="range" id="roundTime" min="8" max="30" step="1" value="15">
+        </div>
+        <div class="field">
+          <label class="top" for="genCount">Antall generasjoner <span class="val" id="genCountVal">6</span></label>
+          <input type="range" id="genCount" min="3" max="12" step="1" value="6">
+        </div>
+        <div class="field">
+          <label class="top" for="mutRate">Mutasjonsrate <span class="val" id="mutRateVal">1 %</span></label>
+          <input type="range" id="mutRate" min="0" max="10" step="1" value="1">
+        </div>
+        <div class="field">
+          <fieldset class="env">
+            <legend>Startmiljø</legend>
+            <div class="seg">
+              <label data-e="lys"><input type="radio" name="env" value="lys" checked><span>Ren bjørk</span></label>
+              <label data-e="sot"><input type="radio" name="env" value="sot"><span>Sotet bjørk</span></label>
+            </div>
+          </fieldset>
+        </div>
+      </div>
+      <div class="actions"><button type="submit" class="primary">Start spillet</button></div>
+    </form>
+
+    <details class="about" style="margin-top:18px;">
+      <summary>Om modellen</summary>
+      <ul>
+        <li><b>Genetikk:</b> målerne er diploide. C (mørk) er dominant over c (lys), så CC og Cc blir mørke og bare cc blir lys.</li>
+        <li><b>Paring:</b> tilfeldig paring blant de overlevende. Avkommet trekker ett allel fra hver forelder.</li>
+        <li><b>Barken er ikke ensfarget:</b> ren bjørk har mørke flekker og arr, og sotet bjørk har lysere partier. Målerne lander tilfeldig, og en måler som havner på et underlag i sin egen farge, er kamuflert. Det er derfor den «gale» fargen ikke blir helt borte.</li>
+        <li><b>Mutasjon:</b> hvert allel kan endres med den valgte raten. Derfor kan en variant dukke opp igjen etter å ha vært helt borte.</li>
+        <li><b>Det viktigste å legge merke til:</b> grafen viser både andelen mørke individer og frekvensen av det mørke allelet. De to er ikke like, og forskjellen blir stor når det lyse allelet er sjeldent.</li>
+      </ul>
+    </details>
+  </section>
+
+  <section class="panel" id="view-game" hidden>
+    <div class="hud">
+      <span class="gen" id="genLabel">Generasjon 1 av 6</span>
+      <span class="stat">Spist: <b id="eatenStat">0</b> &nbsp;·&nbsp; Igjen: <b id="remainingStat">40</b></span>
+    </div>
+    <div class="timerwrap"><div class="timerbar" id="timerBar"></div></div>
+    <div class="canvas-wrap" id="canvasWrap"><canvas id="canvas"></canvas></div>
+    <p class="hint">Trykk på målerne du oppdager på barken.</p>
+  </section>
+
+  <section class="panel" id="view-roundend" hidden>
+    <h2 id="roundEndTitle" style="font-size:20px; margin-bottom:4px;">Generasjon 1 er over</h2>
+    <p class="lede" id="roundEndSub"></p>
+
+    <div class="resultgrid">
+      <div class="resultcard"><div class="n" id="lightCount">0</div><div class="lbl"><span class="swatch" style="background:#cfc7b4"></span>Lyse overlevende</div></div>
+      <div class="resultcard"><div class="n" id="darkCount">0</div><div class="lbl"><span class="swatch" style="background:#241a12"></span>Mørke overlevende</div></div>
+      <div class="resultcard"><div class="n" id="alleleFreq">0,00</div><div class="lbl">Frekvens av mørkt allel</div></div>
+    </div>
+
+    <svg class="chart" id="chartSvg" viewBox="0 0 640 220" preserveAspectRatio="xMidYMid meet"></svg>
+    <div class="legend">
+      <span><span class="swatch" style="background:#241a12"></span>Andel mørke individer</span>
+      <span><span class="swatch" style="background:var(--allele)"></span>Frekvens av mørkt allel (C)</span>
+    </div>
+
+    <fieldset class="env" style="margin-top:20px;">
+      <legend>Miljø for neste generasjon</legend>
+      <div class="seg">
+        <label data-e="lys"><input type="radio" name="envNext" value="lys"><span>Ren bjørk</span></label>
+        <label data-e="sot"><input type="radio" name="envNext" value="sot"><span>Sotet bjørk</span></label>
+      </div>
+    </fieldset>
+
+    <div class="actions">
+      <button class="primary" id="nextGenBtn">Neste generasjon</button>
+      <button class="ghost" id="restartFromResultBtn">Start på nytt</button>
+    </div>
+  </section>
+
+  <section class="panel" id="view-final" hidden>
+    <h2 style="font-size:22px; margin-bottom:6px;">Simuleringen er ferdig</h2>
+    <p class="lede">Følg de to linjene. Når det lyse allelet blir sjeldent, gjemmer det seg i heterozygotene &mdash; og seleksjonen får stadig mindre tak på det.</p>
+
+    <svg class="chart" id="chartSvgFinal" viewBox="0 0 640 220" preserveAspectRatio="xMidYMid meet"></svg>
+    <div class="legend">
+      <span><span class="swatch" style="background:#241a12"></span>Andel mørke individer</span>
+      <span><span class="swatch" style="background:var(--allele)"></span>Frekvens av mørkt allel (C)</span>
+    </div>
+
+    <div class="tablewrap" style="margin-top:14px;"><table class="hist" id="finalTable"></table></div>
+
+    <details class="about" style="margin-top:18px;">
+      <summary>Spørsmål til diskusjon</summary>
+      <ul>
+        <li>Hvorfor er andelen mørke individer høyere enn frekvensen av det mørke allelet?</li>
+        <li>Se på generasjonene der lys farge var i mindretall: hvorfor forsvant det lyse allelet så sakte?</li>
+        <li>Hva ville skjedd med et <em>dominant</em> skadelig allel? Ville seleksjonen virket raskere eller saktere?</li>
+        <li>Hvorfor ble ikke den mørke varianten helt borte på ren bjørk? Kjør på nytt med «Variasjon i barken» satt til null, og sammenlign.</li>
+        <li>Hva skjer med en liten populasjon selv uten seleksjon? Hva kalles det?</li>
+      </ul>
+    </details>
+
+    <div class="actions">
+      <button class="primary" id="toQuizBtn">Ta quizen</button>
+      <button class="ghost" id="restartBtn">Kjør på nytt</button>
+    </div>
+  </section>
+
+  <section class="panel" id="view-quiz" hidden>
+    <div id="quizBody"></div>
+  </section>
+
+  <section class="panel" id="view-essay" hidden>
+    <h2 style="font-size:21px; margin-bottom:6px;">Øv på eksamen</h2>
+    <p class="lede">Skriv et kort svar (6&ndash;8 setninger) uten å se i teorien. Sammenlign deretter med modellsvaret og sjekk deg selv mot kriteriene.</p>
+    <p class="qtext" style="font-size:17px;">Forklar hvorfor andelen mørke bjørkemålere økte i industribyene i England på 1800-tallet.</p>
+    <textarea class="essay" id="essayText" placeholder="Skriv svaret ditt her …"></textarea>
+    <div class="actions" style="margin-top:12px;">
+      <button class="primary" id="showModelBtn" type="button">Vis modellsvar</button>
+      <button class="ghost" id="essayRestartBtn" type="button">Spill på nytt</button>
+    </div>
+    <div id="modelBox" hidden>
+      <div class="model">
+        <p>Bjørkemålere varierer i farge, og fargen er arvelig: det mørke allelet C er dominant over det lyse c. Det mørke allelet oppsto ved en tilfeldig mutasjon og var sjeldent før industrialiseringen. Da sot gjorde bjørkestammene mørke, ble lyse målere lettere å se for fugler og ble spist oftere, mens mørke målere oftere overlevde og fikk avkom. Fordi fargen arves, økte frekvensen av C fra generasjon til generasjon.</p>
+        <p>Dette er naturlig seleksjon: de enkelte målerne skiftet ikke farge, men populasjonen endret sammensetning fordi noen genotyper fikk flere avkom enn andre. Merke- og gjenfangstforsøk (Kettlewell, senere bekreftet av Majerus) viste at fugler tok flest av den formen som syntes best mot barken.</p>
+      </div>
+      <p style="margin-top:14px; font-weight:600;">Sjekk svaret ditt:</p>
+      <ol class="checklist">
+        <li><b>Verbet:</b> «Forklar» betyr at du må si <em>hvorfor</em>, ikke bare beskrive at det skjedde.</li>
+        <li><b>Mekanismen:</b> Har du med variasjon, arvelighet og ulik overlevelse på grunn av fargen?</li>
+        <li><b>Eksempelet brukt, ikke bare nevnt:</b> Har du koblet soten til hvem som ble spist?</li>
+        <li><b>Presist språk:</b> «populasjonen», «frekvens», «allel». Ingen «målerne ble mørke <em>for å</em> gjemme seg» &mdash; det er en vanlig feil.</li>
+      </ol>
+    </div>
+  </section>
+
+  <footer class="credit">Etter Kettlewells feltforsøk på bjørkemåleren, 1950-tallet.</footer>
+</div>
+
+<script>
+(function () {
+  "use strict";
+  const $ = (id) => document.getElementById(id);
+  const views = { intro: $("view-intro"), setup: $("view-setup"), game: $("view-game"), roundend: $("view-roundend"), final: $("view-final"), quiz: $("view-quiz"), essay: $("view-essay") };
+  function show(name) {
+    Object.entries(views).forEach(([k, el]) => { el.hidden = (k !== name); });
+    window.scrollTo(0, 0);
+  }
+
+  // ---- settings labels ----
+  const barkVar = $("barkVar"), mothSize = $("mothSize");
+  const popSize = $("popSize"), pDark = $("pDark"), camo = $("camo"),
+        roundTime = $("roundTime"), genCount = $("genCount"), mutRate = $("mutRate");
+  const camoWords = ["Ingen","Svært lav","Lav","Lav","Middels","Middels","Ganske høy","Høy","Høy","Svært høy","Ekstrem"];
+  function nb(x, d) { return x.toFixed(d).replace(".", ","); }
+  function syncLabels() {
+    popSizeVal.textContent = popSize.value;
+    const p = +pDark.value / 100;
+    pDarkVal.textContent = nb(p, 2);
+    pDarkSub.textContent = `gir ca. ${Math.round((p*p + 2*p*(1-p)) * 100)} % mørke individer`;
+    camoVal.textContent = camoWords[Math.round(+camo.value / 10)];
+    mothSizeVal.textContent = +mothSize.value <= 60 ? "Svært små" : +mothSize.value <= 80 ? "Små" : +mothSize.value <= 100 ? "Middels" : "Store";
+    barkVarVal.textContent = ["Ingen","Svært lav","Lav","Lav","Middels","Middels","Middels","Høy","Høy","Svært høy","Maks"][Math.round(+barkVar.value/10)];
+    roundTimeVal.textContent = roundTime.value + " s";
+    genCountVal.textContent = genCount.value;
+    mutRateVal.textContent = mutRate.value + " %";
+  }
+  [popSize,pDark,camo,barkVar,mothSize,roundTime,genCount,mutRate].forEach(el => el.addEventListener("input", syncLabels));
+  syncLabels();
+
+  function mulberry32(seed) {
+    return function () {
+      seed |= 0; seed = (seed + 0x6D2B79F5) | 0;
+      let t = Math.imul(seed ^ (seed >>> 15), 1 | seed);
+      t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+      return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+    };
+  }
+
+  const state = {
+    N: 40, mu: 0.01, roundSeconds: 15, totalGens: 6, camo: 0.75, barkVar: 0.5, sizeF: 0.7, patches: [],
+    env: "lys", gen: 1, moths: [], eaten: 0, misses: 0,
+    timeLeft: 15, timerId: null, history: [],
+    cw: 700, ch: 360,
+  };
+
+  // ---- colour helpers ----
+  function hexToRgb(h){ return [parseInt(h.slice(1,3),16), parseInt(h.slice(3,5),16), parseInt(h.slice(5,7),16)]; }
+  function rgbStr(c){ return `rgb(${c[0]|0},${c[1]|0},${c[2]|0})`; }
+  function mix(a, b, t){ return [a[0]+(b[0]-a[0])*t, a[1]+(b[1]-a[1])*t, a[2]+(b[2]-a[2])*t]; }
+
+  const BARK = {
+    lys: { paper:"#e9e5da", shadow:"#c9c2b1", lenticel:"#2e2921", patch:"#b3ab99", warm:"#d8d1c0", patchTone:"#272019" },
+    sot: { paper:"#3a332a", shadow:"#241f19", lenticel:"#12100c", patch:"#4a4238", warm:"#2e2820", patchTone:"#cdc6b4" },
+  };
+  // base moth colours before camouflage blending
+  const MOTH = {
+    light: "#ded8cb",   // typica
+    dark:  "#221a13",   // carbonaria
+  };
+
+  // Is the point inside one of the contrasting bark patches?
+  function inPatch(x, y) {
+    for (const q of state.patches) {
+      const dx = x - q.x, dy = y - q.y;
+      const c = Math.cos(-q.rot), sn = Math.sin(-q.rot);
+      const ux = dx * c - dy * sn, uy = dx * sn + dy * c;
+      if ((ux*ux)/(q.rx*q.rx*0.72) + (uy*uy)/(q.ry*q.ry*0.72) <= 1) return true;
+    }
+    return false;
+  }
+  // The colour of the surface the moth sits on decides whether it is camouflaged.
+  function mothColour(m) {
+    const B = BARK[state.env];
+    const base = hexToRgb(m.dark ? MOTH.dark : MOTH.light);
+    const surfaceDark = state.env === "lys" ? m.onPatch : !m.onPatch;
+    if (m.dark !== surfaceDark) return base;          // wrong background: visible
+    const surface = hexToRgb(m.onPatch ? B.patchTone : B.paper);
+    return mix(base, surface, state.camo * 0.8);       // right background: blends in
+  }
+
+  // ---- canvas ----
+  const canvas = $("canvas"), wrap = $("canvasWrap"), ctx = canvas.getContext("2d");
+  let dpr = 1, barkRand = null, barkSeed = 1;
+
+  function sizeCanvas() {
+    const w = wrap.clientWidth || Math.min(660, window.innerWidth - 60);
+    const h = Math.round(Math.min(430, Math.max(250, w * 0.56)));
+    state.cw = w; state.ch = h;
+    dpr = Math.max(1, window.devicePixelRatio || 1);
+    canvas.width = Math.round(w * dpr); canvas.height = Math.round(h * dpr);
+    canvas.style.width = w + "px"; canvas.style.height = h + "px";
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  }
+  window.addEventListener("resize", () => { if (!views.game.hidden) { sizeCanvas(); generatePatches(); placeMoths(state.moths); redraw(); } });
+
+  function generatePatches() {
+    const w = state.cw, h = state.ch, rnd = mulberry32(barkSeed ^ 0x5bd1e995);
+    const target = state.barkVar * 0.26 * w * h;      // up to ~26 % of the trunk
+    const list = []; let covered = 0, guard = 0;
+    while (covered < target && guard < 400) {
+      // birch markings are horizontal bands, not round blobs
+      const rx = 30 + rnd() * 70, ry = 8 + rnd() * 12;
+      list.push({ x: rnd() * w, y: rnd() * h, rx, ry, rot: (rnd() - 0.5) * 0.18, seed: Math.floor(rnd() * 1e9) });
+      covered += Math.PI * rx * ry * 0.72; guard++;
+    }
+    state.patches = list;
+  }
+
+  // One ragged horizontal band, drawn as overlapping lobes with soft edges.
+  function drawBand(q, tone, grain) {
+    const r = mulberry32(q.seed);
+    ctx.save(); ctx.translate(q.x, q.y); ctx.rotate(q.rot);
+    ctx.fillStyle = tone; ctx.shadowColor = tone; ctx.shadowBlur = 3;
+    const lobes = 9;
+    for (let k = 0; k < lobes; k++) {
+      const t = k / (lobes - 1);                   // 0..1 along the band
+      const x = -q.rx + t * q.rx * 2;
+      const taper = Math.sin(Math.PI * (0.08 + t * 0.84));   // thin tips, thick middle
+      const ly = q.ry * (0.55 + r() * 0.5) * taper;
+      ctx.globalAlpha = 0.82 + r() * 0.15;
+      ctx.beginPath();
+      ctx.ellipse(x, (r() - 0.5) * q.ry * 0.35, q.rx * 0.2 + r() * 6, Math.max(2, ly), 0, 0, Math.PI * 2);
+      ctx.fill();
+    }
+    ctx.shadowBlur = 0;
+    // ragged horizontal cracks inside the band
+    ctx.strokeStyle = grain;
+    for (let k = 0; k < 4; k++) {
+      const yy = (r() - 0.5) * q.ry * 1.1;
+      ctx.globalAlpha = 0.22 + r() * 0.2; ctx.lineWidth = 0.7 + r();
+      ctx.beginPath(); ctx.moveTo(-q.rx * 0.7, yy);
+      ctx.lineTo(q.rx * 0.7, yy + (r() - 0.5) * 3); ctx.stroke();
+    }
+    ctx.globalAlpha = 1;
+    ctx.restore();
+  }
+
+  function drawPatches() {
+    const B = BARK[state.env];
+    const grain = state.env === "lys" ? "#5a5045" : "#9d9583";
+    for (const q of state.patches) drawBand(q, B.patchTone, grain);
+  }
+
+  function drawBark() {
+    const B = BARK[state.env], w = state.cw, h = state.ch;
+    const rnd = mulberry32(barkSeed);
+    ctx.fillStyle = B.paper; ctx.fillRect(0, 0, w, h);
+
+    // broad vertical tonal bands — the papery sheets of birch bark
+    for (let i = 0; i < 14; i++) {
+      const x = rnd() * w, bw = 20 + rnd() * 90;
+      ctx.fillStyle = rnd() > .5 ? B.warm : B.shadow;
+      ctx.globalAlpha = 0.10 + rnd() * 0.16;
+      ctx.fillRect(x, 0, bw, h);
+    }
+    ctx.globalAlpha = 1;
+
+    // peeling horizontal seams
+    for (let i = 0; i < 7; i++) {
+      const y = rnd() * h;
+      ctx.strokeStyle = B.shadow; ctx.globalAlpha = 0.25 + rnd() * 0.3;
+      ctx.lineWidth = 0.8 + rnd() * 1.6;
+      ctx.beginPath(); ctx.moveTo(0, y);
+      for (let x = 0; x <= w; x += 26) ctx.lineTo(x, y + (rnd() - 0.5) * 7);
+      ctx.stroke();
+    }
+    ctx.globalAlpha = 1;
+
+    drawPatches();
+
+    // lenticels — the horizontal dark dashes that make birch look like birch
+    const lenN = Math.round((w * h) / 2600);
+    for (let i = 0; i < lenN; i++) {
+      const x = rnd() * w, y = rnd() * h;
+      const lw = 6 + rnd() * 48, lh = 1.5 + rnd() * 4.5;
+      ctx.fillStyle = B.lenticel;
+      ctx.globalAlpha = 0.5 + rnd() * 0.45;
+      ctx.beginPath();
+      // tapered dash: thick centre, thin tips
+      ctx.moveTo(x, y);
+      ctx.quadraticCurveTo(x + lw * 0.5, y - lh, x + lw, y);
+      ctx.quadraticCurveTo(x + lw * 0.5, y + lh, x, y);
+      ctx.fill();
+    }
+    ctx.globalAlpha = 1;
+
+    // darker knots / scars
+    for (let i = 0; i < 4; i++) {
+      const x = rnd() * w, y = rnd() * h, r = 12 + rnd() * 30;
+      const g = ctx.createRadialGradient(x, y, r * 0.15, x, y, r);
+      g.addColorStop(0, B.lenticel); g.addColorStop(1, "rgba(0,0,0,0)");
+      ctx.fillStyle = g; ctx.globalAlpha = (state.env === "lys" ? 0.18 : 0.4) + rnd() * 0.2;
+      ctx.beginPath(); ctx.ellipse(x, y, r, r * 0.62, rnd() * 3, 0, Math.PI * 2); ctx.fill();
+    }
+    ctx.globalAlpha = 1;
+
+    // fine speckling
+    for (let i = 0; i < 260; i++) {
+      const x = rnd() * w, y = rnd() * h;
+      ctx.fillStyle = rnd() > .5 ? B.shadow : B.patch;
+      ctx.globalAlpha = 0.12 + rnd() * 0.3;
+      ctx.fillRect(x, y, 1 + rnd() * 2, 1 + rnd());
+    }
+    ctx.globalAlpha = 1;
+  }
+
+  function drawMoth(m) {
+    if (!m.alive) return;
+    const col = mothColour(m);
+    const r = m.r;
+    const rnd = mulberry32(m.seed);
+    ctx.save();
+    ctx.translate(m.x, m.y); ctx.rotate(m.rot);
+
+    // resting peppered moth: wings held flat in a shallow triangle
+    ctx.beginPath();
+    ctx.moveTo(0, -r * 0.92);                                 // head end
+    ctx.quadraticCurveTo(r * 1.02, -r * 0.30, r * 0.80, r * 0.78);
+    ctx.quadraticCurveTo(r * 0.34, r * 0.98, 0, r * 0.86);    // tail notch
+    ctx.quadraticCurveTo(-r * 0.34, r * 0.98, -r * 0.80, r * 0.78);
+    ctx.quadraticCurveTo(-r * 1.02, -r * 0.30, 0, -r * 0.92);
+    ctx.closePath();
+    ctx.fillStyle = rgbStr(col);
+    ctx.fill();
+
+    // peppering: fine flecks in a fixed per-moth pattern
+    ctx.save(); ctx.clip();
+    const fleck = m.dark ? mix(col, [255,255,255], 0.18) : mix(col, [20,16,12], 0.55);
+    ctx.fillStyle = rgbStr(fleck);
+    for (let i = 0; i < 42; i++) {
+      const fx = (rnd() - 0.5) * r * 2, fy = (rnd() - 0.5) * r * 2;
+      ctx.globalAlpha = 0.25 + rnd() * 0.5;
+      ctx.fillRect(fx, fy, 0.8 + rnd() * 1.7, 0.8 + rnd() * 1.4);
+    }
+    // faint cross-bands on the wings
+    ctx.globalAlpha = m.dark ? 0.14 : 0.22;
+    ctx.strokeStyle = rgbStr(fleck); ctx.lineWidth = 1.1;
+    for (let b = 0; b < 2; b++) {
+      const by = -r * 0.15 + b * r * 0.5;
+      ctx.beginPath(); ctx.moveTo(-r, by);
+      ctx.quadraticCurveTo(0, by + r * 0.16, r, by);
+      ctx.stroke();
+    }
+    ctx.globalAlpha = 1;
+    ctx.restore();
+
+    // thorax line and antennae
+    ctx.strokeStyle = rgbStr(mix(col, [0,0,0], 0.35));
+    ctx.globalAlpha = 0.55; ctx.lineWidth = Math.max(1, r * 0.09);
+    ctx.beginPath(); ctx.moveTo(0, -r * 0.55); ctx.lineTo(0, r * 0.72); ctx.stroke();
+    ctx.lineWidth = Math.max(0.7, r * 0.055);
+    ctx.beginPath();
+    ctx.moveTo(-r * 0.05, -r * 0.82); ctx.quadraticCurveTo(-r * 0.38, -r * 1.05, -r * 0.5, -r * 0.95);
+    ctx.moveTo( r * 0.05, -r * 0.82); ctx.quadraticCurveTo( r * 0.38, -r * 1.05,  r * 0.5, -r * 0.95);
+    ctx.stroke();
+    ctx.globalAlpha = 1;
+    ctx.restore();
+  }
+
+  function redraw() { drawBark(); state.moths.forEach(drawMoth); }
+
+  // ---- population ----
+  function placeMoths(list) {
+    const w = state.cw, h = state.ch;
+    const base = Math.max(5, Math.min(16, w / 48) * state.sizeF);
+    const placed = [];
+    for (const m of list) {
+      const r = base * (0.88 + Math.random() * 0.26);
+      const margin = r + 5;
+      let x, y, tries = 0, ok = false;
+      while (tries < 50 && !ok) {
+        x = margin + Math.random() * (w - margin * 2);
+        y = margin + Math.random() * (h - margin * 2);
+        ok = placed.every(p => Math.hypot(p.x - x, p.y - y) > (p.r + r) * 1.15);
+        tries++;
+      }
+      m.x = x; m.y = y; m.r = r;
+      m.onPatch = inPatch(x, y);
+      m.rot = Math.random() * Math.PI * 2;
+      m.seed = Math.floor(Math.random() * 1e9);
+      m.alive = true;
+      placed.push(m);
+    }
+    return list;
+  }
+
+  const isDark = (g) => g > 0;              // genotype 2=CC, 1=Cc, 0=cc
+  function genotypesFromP(N, p) {
+    const arr = [];
+    for (let i = 0; i < N; i++) {
+      const a1 = Math.random() < p ? 1 : 0, a2 = Math.random() < p ? 1 : 0;
+      arr.push({ g: a1 + a2 });
+    }
+    return arr;
+  }
+  function decorate(arr) { arr.forEach(m => { m.dark = isDark(m.g); }); return placeMoths(arr); }
+
+  function reproduce(survivors) {
+    let p;
+    if (survivors.length === 0) {
+      const prev = state.history[state.history.length - 1];
+      p = prev ? prev.p : 0.5;   // wiped out: rebuild from last known gene pool
+    } else {
+      let c = 0;
+      survivors.forEach(m => c += m.g);
+      p = c / (survivors.length * 2);
+    }
+    const arr = [];
+    for (let i = 0; i < state.N; i++) {
+      let a1 = Math.random() < p ? 1 : 0, a2 = Math.random() < p ? 1 : 0;
+      if (Math.random() < state.mu) a1 = 1 - a1;
+      if (Math.random() < state.mu) a2 = 1 - a2;
+      arr.push({ g: a1 + a2 });
+    }
+    return decorate(arr);
+  }
+
+  // ---- round flow ----
+  function startRound() {
+    show("game");
+    sizeCanvas();
+    barkSeed = Math.floor(Math.random() * 1e9);
+    generatePatches();
+    placeMoths(state.moths);
+    state.eaten = 0; state.misses = 0;
+    redraw(); updateHud();
+    state.timeLeft = state.roundSeconds; updateTimerBar();
+    clearInterval(state.timerId);
+    state.timerId = setInterval(tick, 1000);
+  }
+  function tick() {
+    state.timeLeft -= 1; updateTimerBar();
+    if (state.timeLeft <= 0 || state.moths.filter(m => m.alive).length === 0) {
+      clearInterval(state.timerId); endRound();
+    }
+  }
+  function updateTimerBar() {
+    const bar = $("timerBar");
+    bar.style.width = Math.max(0, (state.timeLeft / state.roundSeconds) * 100) + "%";
+    bar.classList.toggle("low", state.timeLeft <= Math.ceil(state.roundSeconds * 0.25));
+  }
+  function updateHud() {
+    $("genLabel").textContent = `Generasjon ${state.gen} av ${state.totalGens}`;
+    $("eatenStat").textContent = state.eaten;
+    $("remainingStat").textContent = state.moths.filter(m => m.alive).length;
+  }
+  function popup(cls, x, y, text) {
+    const d = document.createElement("div");
+    d.className = cls; d.style.left = x + "px"; d.style.top = y + "px";
+    if (text) d.textContent = text;
+    wrap.appendChild(d); setTimeout(() => d.remove(), 700);
+  }
+  canvas.addEventListener("pointerdown", (evt) => {
+    if (views.game.hidden) return;
+    const rect = canvas.getBoundingClientRect();
+    const cx = evt.clientX - rect.left, cy = evt.clientY - rect.top;
+    let hit = null, best = Infinity;
+    for (const m of state.moths) {
+      if (!m.alive) continue;
+      const d = Math.hypot(m.x - cx, m.y - cy);
+      if (d < m.r * 1.2 && d < best) { hit = m; best = d; }
+    }
+    if (hit) {
+      hit.alive = false; state.eaten++;
+      popup("eatpop", cx, cy, "spist");
+      redraw(); updateHud();
+      if (state.moths.filter(m => m.alive).length === 0) { clearInterval(state.timerId); endRound(); }
+    } else {
+      state.misses++;
+      popup("misspop", cx, cy, "");
+    }
+  });
+
+  function endRound() {
+    const surv = state.moths.filter(m => m.alive);
+    const light = surv.filter(m => !m.dark).length, dark = surv.filter(m => m.dark).length;
+    const total = light + dark;
+    let cAll = 0; surv.forEach(m => cAll += m.g);
+    const p = total ? cAll / (total * 2) : (state.history.length ? state.history[state.history.length-1].p : 0.5);
+    const gt = { CC: surv.filter(m=>m.g===2).length, Cc: surv.filter(m=>m.g===1).length, cc: surv.filter(m=>m.g===0).length };
+    state.history.push({ gen: state.gen, env: state.env, light, dark, gt,
+      darkPct: total ? Math.round(dark / total * 100) : 0, p });
+
+    $("roundEndTitle").textContent = `Generasjon ${state.gen} er over`;
+    $("roundEndSub").textContent = total === 0
+      ? "Alle ble spist. Populasjonen bygges opp igjen fra forrige generasjons genpool."
+      : `${state.eaten} av ${state.N} ble spist${state.misses ? `, og du bommet ${state.misses} ganger` : ""}. De ${total} som overlevde, parer seg nå.`;
+    $("lightCount").textContent = light;
+    $("darkCount").textContent = dark;
+    $("alleleFreq").textContent = nb(p, 2);
+    drawChart($("chartSvg"), state.history);
+    document.getElementsByName("envNext").forEach(r => { r.checked = (r.value === state.env); });
+    $("nextGenBtn").textContent = state.gen >= state.totalGens ? "Se resultatet" : "Neste generasjon";
+    show("roundend");
+  }
+
+  function goNext() {
+    const surv = state.moths.filter(m => m.alive);
+    const chosen = Array.from(document.getElementsByName("envNext")).find(r => r.checked);
+    state.env = chosen ? chosen.value : state.env;
+    if (state.gen >= state.totalGens) { showFinal(); return; }
+    state.gen += 1;
+    state.moths = reproduce(surv);
+    startRound();
+  }
+
+  function drawChart(svg, hist) {
+    const W = 640, H = 220, padL = 34, padR = 12, padT = 14, padB = 26;
+    const iw = W - padL - padR, ih = H - padT - padB, n = hist.length;
+    const ns = "http://www.w3.org/2000/svg";
+    svg.innerHTML = "";
+    const el = (t, a) => { const e = document.createElementNS(ns, t); for (const k in a) e.setAttribute(k, a[k]); return e; };
+    [0,25,50,75,100].forEach(v => {
+      const y = padT + ih - (v/100)*ih;
+      svg.appendChild(el("line", { class:"gridline", x1:padL, x2:W-padR, y1:y, y2:y }));
+      const t = el("text", { x: padL-8, y: y+3, "text-anchor":"end" }); t.textContent = v + "%";
+      svg.appendChild(t);
+    });
+    hist.forEach((h, i) => {
+      const x = n > 1 ? padL + (i/(n-1))*iw : padL + iw/2;
+      const t = el("text", { x, y: H-6, "text-anchor":"middle" }); t.textContent = "G" + h.gen;
+      svg.appendChild(t);
+    });
+    const line = (getter) => hist.map((h, i) => {
+      const x = n > 1 ? padL + (i/(n-1))*iw : padL + iw/2;
+      const y = padT + ih - (getter(h)/100)*ih;
+      return (i ? "L" : "M") + x.toFixed(1) + "," + y.toFixed(1);
+    }).join(" ");
+    svg.appendChild(el("path", { d: line(h => h.darkPct), fill:"none", stroke:"#241a12", "stroke-width":2.5 }));
+    svg.appendChild(el("path", { d: line(h => h.p*100), fill:"none", stroke:"#4a6c8f", "stroke-width":2.5, "stroke-dasharray":"5 4" }));
+    hist.forEach((h, i) => {
+      const x = n > 1 ? padL + (i/(n-1))*iw : padL + iw/2;
+      svg.appendChild(el("circle", { cx:x, cy: padT+ih-(h.darkPct/100)*ih, r:3.5, fill:"#241a12", stroke:"var(--paper)", "stroke-width":1.5 }));
+      svg.appendChild(el("circle", { cx:x, cy: padT+ih-(h.p*100/100)*ih, r:3.5, fill:"#4a6c8f", stroke:"var(--paper)", "stroke-width":1.5 }));
+    });
+  }
+
+  function showFinal() {
+    drawChart($("chartSvgFinal"), state.history);
+    let html = "<tr><th>Gen.</th><th>Miljø</th><th>CC</th><th>Cc</th><th>cc</th><th>% mørke</th><th>freq(C)</th></tr>";
+    state.history.forEach(h => {
+      html += `<tr><td>${h.gen}</td><td>${h.env === "lys" ? "Ren" : "Sotet"}</td><td>${h.gt.CC}</td><td>${h.gt.Cc}</td><td>${h.gt.cc}</td><td>${h.darkPct}%</td><td>${nb(h.p,2)}</td></tr>`;
+    });
+    $("finalTable").innerHTML = html;
+    show("final");
+  }
+
+  $("settingsForm").addEventListener("submit", (e) => {
+    e.preventDefault();
+    state.N = +popSize.value;
+    state.mu = +mutRate.value / 100;
+    state.roundSeconds = +roundTime.value;
+    state.totalGens = +genCount.value;
+    state.camo = +camo.value / 100;
+    state.barkVar = +barkVar.value / 100;
+    state.sizeF = +mothSize.value / 100;
+    state.env = document.querySelector('input[name="env"]:checked').value;
+    state.gen = 1; state.history = [];
+    state.moths = decorate(genotypesFromP(state.N, +pDark.value / 100));
+    startRound();
+  });
+  // ---------- quiz ----------
+  const QUIZ = [
+    { q: "Hvorfor ble mørke bjørkemålere vanligere i industribyene på 1800-tallet?",
+      o: ["Soten farget målerne mørke, og fargen gikk i arv",
+          "Mørke målere ble sjeldnere spist på sotete stammer og fikk derfor flere avkom",
+          "Målerne ble mørkere fordi de trengte å ligne barken",
+          "Mørke målere tålte luftforurensningen bedre"],
+      a: 1,
+      e: "Seleksjonen virket på arvelig variasjon som allerede fantes. Alternativ A er Lamarcks idé om at ervervede egenskaper arves, og C er teleologi: evolusjon skjer ikke fordi organismen «trenger» noe." },
+    { q: "Hvor kom det mørke allelet fra?",
+      o: ["Fra en tilfeldig mutasjon som oppsto før soten gjorde den nyttig",
+          "Soten forårsaket mutasjonen i målerne som satt på sotete trær",
+          "Det ble overført fra en annen nattsvermerart",
+          "Det oppsto på nytt i hver måler som trengte det"],
+      a: 0,
+      e: "Mutasjonen (et transposon i genet cortex) anslås å ha oppstått rundt 1819. Mutasjoner er tilfeldige med tanke på om de er nyttige. Miljøet avgjør bare hvilke varianter som overlever." },
+    { q: "I spillet var andelen mørke individer høyere enn frekvensen av det mørke allelet. Hvorfor?",
+      o: ["Det er en feil i spillet",
+          "Fordi C er dominant, så både CC og Cc blir mørke",
+          "Fordi mørke målere får flere avkom per individ",
+          "Fordi lyse målere har dobbelt så mange alleler"],
+      a: 1,
+      e: "Med allelfrekvens p for C er andelen mørke individer p² + 2pq, som alltid er større enn p (når p ligger mellom 0 og 1). Det er Hardy–Weinberg i praksis." },
+    { q: "Når det lyse allelet (c) blir sjeldent, forsvinner det svært sakte, selv om fuglene spiser nesten alle lyse målere. Hvorfor?",
+      o: ["Lyse målere gjemmer seg bedre når de er få",
+          "Nesten alle c-allelene sitter i heterozygoter (Cc), som ser mørke ut og ikke blir valgt bort",
+          "Mutasjon lager nye c-alleler like raskt som de forsvinner",
+          "Fuglene slutter å jakte når det er få lyse målere igjen"],
+      a: 1,
+      e: "Seleksjonen «ser» bare fenotypen. Et recessivt allel som er sjeldent, finnes nesten bare i heterozygoter, og der er det usynlig for seleksjonen." },
+    { q: "Hvem er det som evolverer i dette eksempelet?",
+      o: ["Hver enkelt måler, som endrer farge i løpet av livet",
+          "Populasjonen, fordi frekvensen av allelene endres over generasjoner",
+          "Fuglene, som blir flinkere til å finne målere",
+          "Bjørketrærne, som blir mørkere"],
+      a: 1,
+      e: "Et individs genotype er den samme hele livet. Evolusjon er endring i den genetiske sammensetningen i en populasjon fra generasjon til generasjon." },
+    { q: "Hvorfor forsvinner ikke den mørke formen helt fra en skog med ren bjørk?",
+      o: ["Fuglene liker ikke smaken av mørke målere",
+          "Mørke flekker i barken gir noen mørke målere et skjulested, og mutasjon og genflyt kan tilføre nye mørke alleler",
+          "Mørke målere lever lenger enn lyse",
+          "Den gjør det alltid etter én generasjon"],
+      a: 1,
+      e: "Variasjon i miljøet, mutasjon og genflyt fra andre områder kan alle holde en sjelden variant i populasjonen. Prøv spillet med «Variasjon i barken» satt til null og se forskjellen." },
+    { q: "Etter at luften ble renere på 1950-tallet, ble de lyse målerne vanlige igjen. Hva viser det?",
+      o: ["At evolusjonen har et mål",
+          "At seleksjonen avhenger av miljøet, og at retningen kan snu når miljøet endres",
+          "At mutasjonen ble reversert",
+          "At målerne lærte å velge riktig farge"],
+      a: 1,
+      e: "Hva som er «best tilpasset», avhenger av miljøet her og nå. Når miljøet endres, endres også hvilke varianter som favoriseres. Seleksjonen ser ikke framover." },
+  ];
+  const quiz = { i: 0, score: 0, answered: false, cur: null };
+  const LETTERS = ["A","B","C","D"];
+  function esc(t) { return t.replace(/&/g,"&amp;").replace(/</g,"&lt;"); }
+  function shuffled(Q) {
+    // shuffle the options each time so the right answer is not always in the same place
+    const idx = Q.o.map((_, k) => k);
+    for (let k = idx.length - 1; k > 0; k--) { const j = Math.floor(Math.random() * (k + 1)); [idx[k], idx[j]] = [idx[j], idx[k]]; }
+    return { q: Q.q, e: Q.e, o: idx.map(k => Q.o[k]), a: idx.indexOf(Q.a) };
+  }
+  function renderQuestion() {
+    const Q = quiz.cur = shuffled(QUIZ[quiz.i]);
+    quiz.answered = false;
+    let html = `<div class="qprog">Spørsmål ${quiz.i + 1} av ${QUIZ.length}</div><p class="qtext">${esc(Q.q)}</p><div class="opts">`;
+    Q.o.forEach((opt, k) => { html += `<button class="opt" data-k="${k}" type="button">${LETTERS[k]})&nbsp; ${esc(opt)}</button>`; });
+    html += `</div><div id="qfeedback"></div>`;
+    $("quizBody").innerHTML = html;
+    $("quizBody").querySelectorAll(".opt").forEach(b => b.addEventListener("click", () => answer(+b.dataset.k)));
+  }
+  function answer(k) {
+    if (quiz.answered) return;
+    quiz.answered = true;
+    const Q = quiz.cur, ok = k === Q.a;
+    if (ok) quiz.score++;
+    $("quizBody").querySelectorAll(".opt").forEach(b => {
+      const kk = +b.dataset.k; b.disabled = true;
+      if (kk === Q.a) b.classList.add("correct");
+      else if (kk === k) b.classList.add("wrong");
+    });
+    const last = quiz.i === QUIZ.length - 1;
+    $("qfeedback").innerHTML = `<div class="expl ${ok ? "" : "bad"}"><b>${ok ? "Riktig." : "Ikke helt."}</b>${esc(Q.e)}</div>
+      <div class="actions" style="margin-top:12px;"><button class="primary" id="qNext" type="button">${last ? "Se resultatet" : "Neste spørsmål"}</button></div>`;
+    $("qNext").addEventListener("click", () => {
+      if (last) renderScore(); else { quiz.i++; renderQuestion(); }
+    });
+  }
+  function renderScore() {
+    const n = QUIZ.length, s = quiz.score;
+    const msg = s === n ? "Alt riktig. Du har forstått mekanismen." :
+                s >= n - 2 ? "Godt jobbet. Se over forklaringene på dem du bommet på." :
+                "Les teorien en gang til, og spill gjerne en runde til med blikket på de to linjene i grafen.";
+    $("quizBody").innerHTML = `<div class="qprog">Resultat</div><div class="score">${s} av ${n}</div><p class="lede">${msg}</p>
+      <div class="actions"><button class="primary" id="toEssayBtn" type="button">Øv på et eksamenssvar</button>
+      <button class="ghost" id="quizAgainBtn" type="button">Ta quizen på nytt</button></div>`;
+    $("toEssayBtn").addEventListener("click", () => { $("modelBox").hidden = true; show("essay"); });
+    $("quizAgainBtn").addEventListener("click", startQuiz);
+  }
+  function startQuiz() { quiz.i = 0; quiz.score = 0; renderQuestion(); show("quiz"); }
+
+  $("toSetupBtn").addEventListener("click", () => show("setup"));
+  $("navTheory").addEventListener("click", () => { clearInterval(state.timerId); show("intro"); });
+  $("toQuizBtn").addEventListener("click", startQuiz);
+  $("showModelBtn").addEventListener("click", () => { $("modelBox").hidden = false; });
+  $("essayRestartBtn").addEventListener("click", () => show("setup"));
+
+  $("nextGenBtn").addEventListener("click", goNext);
+  $("restartBtn").addEventListener("click", () => show("setup"));
+  $("restartFromResultBtn").addEventListener("click", () => { clearInterval(state.timerId); show("setup"); });
+})();
+</script>
+</body>
+</html>
